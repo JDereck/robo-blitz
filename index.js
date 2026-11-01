@@ -5,7 +5,7 @@ const app = express();
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyU95UPcYF6KHB8YpdogzMvbj5pCRSpf4pddhdyfO92N36e_HFB63DONaNHc-0wz7_E2A/exec';
 
 // 1. URL DA API (Mude para o link da Blitz4 se for o caso)
-const URL_API = 'https://blaze.bet.br/api/singleplayer-originals/originals/roulette_games/recent/1';
+const URL_API = 'https://blitz4.casino/api/singleplayer-originals/originals/roulette_games/recent/1';
 
 // 2. OS SEUS HEADERS E COOKIES (A chave para furar o bloqueio)
 const HEADERS_FALSOS = {
