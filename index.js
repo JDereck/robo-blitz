@@ -8,12 +8,19 @@ const URL_API = 'https://blitz4.casino/api/singleplayer-originals/originals/roul
 let ultimoIdProcessado = null;
 
 async function lerResultados() {
-    console.log('🔎 A consultar a API do Blitz4...');
+    console.log('🔎 A consultar a API do Blitz4 com cabeçalhos de navegador...');
     try {
         const response = await axios.get(URL_API, {
             headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json'
+                'Host': 'blitz4.casino',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': 'https://blitz4.casino/pt/games/double',
+                'Origin': 'https://blitz4.casino',
+                'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"'
             }
         });
 
@@ -23,16 +30,14 @@ async function lerResultados() {
             return;
         }
 
-        // Pega o jogo mais recente (o primeiro da lista)
         const maisRecente = lista[0];
         const idGiro = maisRecente.id;
         const numero = maisRecente.roll;
 
         if (idGiro && idGiro !== ultimoIdProcessado) {
             ultimoIdProcessado = idGiro;
-            console.log(`✅ Novo giro detetado via API! ID: ${idGiro}, Número: ${numero}`);
+            console.log(`✅ Sucesso! Novo giro detetado: ID ${idGiro}, Número ${numero}`);
             
-            // Envia para o Webhook da Planilha
             await axios.post(WEBHOOK_URL, {
                 id: idGiro,
                 numero: parseInt(numero, 10),
@@ -42,11 +47,10 @@ async function lerResultados() {
             console.log(`⏳ Nenhum giro novo. Último ID visto: ${idGiro}`);
         }
     } catch (erro) {
-        console.error('❌ Erro ao consultar API:', erro.message);
+        console.error('❌ Erro ao consultar API:', erro.response ? `${erro.response.status} - ${JSON.stringify(erro.response.data)}` : erro.message);
     }
 }
 
-// Consulta a cada 15 segundos
 setInterval(lerResultados, 15000);
 
 app.get('/', (req, res) => res.send('Robô API Blitz4 a funcionar 24h!'));
