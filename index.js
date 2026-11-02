@@ -1,53 +1,49 @@
 const axios = require('axios');
 const express = require('express');
+
 const app = express();
-
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyU95UPcYF6KHB8YpdogzMvbj5pCRSpf4pddhdyfO92N36e_HFB63DONaNHc-0wz7_E2A/exec';
-
-// 1. URL DA API (Mude para o link da Blitz4 se for o caso)
 const URL_API = 'https://blitz4.casino/api/singleplayer-originals/originals/roulette_games/recent/1';
 
-// 2. OS SEUS HEADERS E COOKIES (A chave para furar o bloqueio)
-const HEADERS_FALSOS = {
-    'accept': 'application/json, text/plain, */*',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
-    'referer': 'https://blaze.bet.br/pt/games/double',
-    
-    // IMPORTANTE: Cole os seus cookies todos aqui numa única linha, separados por ponto e vírgula
-    'cookie': '_gcl_au=1.1.2102203207.1781728316; _fbp=fb.2.1781728316021.466905658269241325; kwai_uuid=5743d16a5a45b64f04bc56c8fec02bcf;'
-};
+let ultimoGiroId = null;
 
-let check = [];
-
-async function lerResultados() {
+async function lerResultadosApi() {
     try {
-        const { data } = await axios.get(URL_API, { headers: HEADERS_FALSOS });
-        
-        // Extrai apenas o número "roll" tal como no código Python
-        const resultadosAtuais = data.map(item => parseInt(item.roll, 10));
+        const response = await axios.get(URL_API, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*'
+            },
+            timeout: 10000
+        });
 
-        // Só atualiza quando houver mudança na API
-        if (JSON.stringify(resultadosAtuais) !== JSON.stringify(check)) {
-            check = [...resultadosAtuais];
-            
-            const numeroRecente = resultadosAtuais[0];
-            const idGiro = 'API-' + Date.now();
-            
-            console.log(`✅ Novo giro detetado via API: ${numeroRecente}`);
-            
+        const itens = response.data;
+        if (!Array.isArray(itens) || itens.length === 0) return;
+
+        // O primeiro item da lista é o giro mais recente
+        const maisRecente = itens[0];
+        const idGiro = maisRecente.id;
+        const numero = parseInt(maisRecente.roll, 10);
+
+        // Se for um ID novo que ainda não processamos
+        if (idGiro && idGiro !== ultimoGiroId) {
+            ultimoGiroId = idGiro;
+            console.log(`✅ Novo giro detetado na API Blitz4: ID ${idGiro}, Número ${numero}`);
+
+            // Envia para a planilha via Webhook
             await axios.post(WEBHOOK_URL, {
                 id: idGiro,
-                numero: numeroRecente,
-                dataHora: new Date().toISOString()
+                numero: numero,
+                dataHora: maisRecente.created_at || new Date().toISOString()
             });
         }
     } catch (erro) {
-        console.error('❌ Erro na API (Cookies vencidos ou link errado):', erro.message);
+        console.error('❌ Erro ao consultar a API da Blitz4:', erro.message);
     }
 }
 
-// Verifica a API a cada 3 segundos
-setInterval(lerResultados, 3000);
+// Consulta a API a cada 3 segundos (muito mais rápido e seguro que scraping)
+setInterval(lerResultadosApi, 3000);
 
-app.get('/', (req, res) => res.send('Robô da API a funcionar 24h!'));
+app.get('/', (req, res) => res.send('Robô API Blitz4 a funcionar 24h!'));
 app.listen(process.env.PORT || 3000, () => console.log('Servidor iniciado.'));
